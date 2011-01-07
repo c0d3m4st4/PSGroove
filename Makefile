@@ -68,15 +68,34 @@ BOARD  = ATmega16aBasedDongle
 # Due to some silly timing issues. This currently needs to stay at 1
 DEBUG_LEVEL = 1
 
-# VERSION are 
-# 	HERMES_V3 			- Hermes v3
+# PAYLOAD are 
+# 	HERMES_V3	 		- Hermes v3
 # 	HERMES_V4 			- Hermes v4 
 # 	HERMES_V4_SPOOF			- Hermes v4 with 3.55 spoof
 # 	PL3				- Kararoto's PL3	        
-VERSION = HERMES_V4_SPOOF
+PAYLOAD = HERMES_V4_SPOOF
 
+ifeq ($(PAYLOAD),HERMES_V3)
+	VERSION = 1
+else
+	ifeq ($(PAYLOAD),HERMES_V4)
+		VERSION = 2
+	else
+		ifeq ($(PAYLOAD),HERMES_V4_SPOOF)
+			VERSION = 3
+		else
+			ifeq ($(PAYLOAD),PL3)
+				VERSION = 4
+			endif
+		endif
+	endif
+endif
+
+
+ifeq ($(VERSION),4)
 # PL3 target firmware (for PL3 only)
 FIRMWARE_VERSION = 3_41
+endif
 
 # Processor frequency.
 #     This will define a symbol, F_CPU, in all source code files equal to the 
@@ -171,7 +190,9 @@ CDEFS += -DF_CLOCK=$(F_CLOCK)UL
 CDEFS += -DBOARD=BOARD_$(BOARD)
 CDEFS += -DDEBUG_LEVEL=${DEBUG_LEVEL}
 CDEFS += -DVERSION=$(VERSION)
+ifeq ($(VERSION),4)
 CDEFS += -DFIRMWARE_${FIRMWARE_VERSION}
+endif
 
 # Place -D or -U options here for ASM sources
 ADEFS  = -DF_CPU=$(F_CPU)
@@ -308,7 +329,7 @@ EXTMEMOPTS =
 #  -Wl,...:     tell GCC to pass this to linker.
 #    -Map:      create map file
 #    --cref:    add cross reference to  map file
-LDFLAGS  = -Wl,-Map=$(TARGET)-$(VERSION).map,--cref
+LDFLAGS  = -Wl,-Map=$(TARGET)-$(PAYLOAD).map,--cref
 LDFLAGS += -Wl,--relax 
 LDFLAGS += -Wl,--gc-sections
 LDFLAGS += $(EXTMEMOPTS)
@@ -328,8 +349,8 @@ AVRDUDE_PROGRAMMER = stk500v1 -b 57600
 # com1 = serial port. Use lpt1 to connect to parallel port.
 AVRDUDE_PORT = /dev/tty.usbserial-A6008hgx
 
-AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET)-$(VERSION).hex
-#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET)-$(VERSION).eep
+AVRDUDE_WRITE_FLASH = -U flash:w:$(TARGET)-$(PAYLOAD).hex
+#AVRDUDE_WRITE_EEPROM = -U eeprom:w:$(TARGET)-$(PAYLOAD).eep
 
 
 # Uncomment the following if you want avrdude's erase cycle counter.
@@ -453,12 +474,12 @@ build: hex
 #build: lib
 
 
-elf: $(TARGET)-$(VERSION).elf
-hex: $(TARGET)-$(VERSION).hex
-eep: $(TARGET)-$(VERSION).eep
-lss: $(TARGET)-$(VERSION).lss
-sym: $(TARGET)-$(VERSION).sym
-LIBNAME=lib$(TARGET)-$(VERSION).a
+elf: $(TARGET)-$(PAYLOAD).elf
+hex: $(TARGET)-$(PAYLOAD).hex
+eep: $(TARGET)-$(PAYLOAD).eep
+lss: $(TARGET)-$(PAYLOAD).lss
+sym: $(TARGET)-$(PAYLOAD).sym
+LIBNAME=lib$(TARGET)-$(PAYLOAD).a
 lib: $(LIBNAME)
 
 
@@ -476,18 +497,18 @@ end:
 
 
 # Display size of file.
-HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET)-$(VERSION).hex
-ELFSIZE = $(SIZE) $(MCU_FLAG) $(FORMAT_FLAG) $(TARGET)-$(VERSION).elf
+HEXSIZE = $(SIZE) --target=$(FORMAT) $(TARGET)-$(PAYLOAD).hex
+ELFSIZE = $(SIZE) $(MCU_FLAG) $(FORMAT_FLAG) $(TARGET)-$(PAYLOAD).elf
 MCU_FLAG = $(shell $(SIZE) --help | grep -- --mcu > /dev/null && echo --mcu=$(MCU) )
 FORMAT_FLAG = $(shell $(SIZE) --help | grep -- --format=.*avr > /dev/null && echo --format=avr )
 
 
 sizebefore:
-	@if test -f $(TARGET)-$(VERSION).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
+	@if test -f $(TARGET)-$(PAYLOAD).elf; then echo; echo $(MSG_SIZE_BEFORE); $(ELFSIZE); \
 	2>/dev/null; echo; fi
 
 sizeafter:
-	@if test -f $(TARGET)-$(VERSION).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
+	@if test -f $(TARGET)-$(PAYLOAD).elf; then echo; echo $(MSG_SIZE_AFTER); $(ELFSIZE); \
 	2>/dev/null; echo; fi
 
 
@@ -498,28 +519,28 @@ gccversion :
 
 
 # Program the device.  
-program: $(TARGET)-$(VERSION).hex $(TARGET)-$(VERSION).eep
+program: $(TARGET)-$(PAYLOAD).hex $(TARGET)-$(PAYLOAD).eep
 	$(AVRDUDE) $(AVRDUDE_FLAGS) $(AVRDUDE_WRITE_FLASH) $(AVRDUDE_WRITE_EEPROM)
 
-flip: $(TARGET)-$($VERSION).hex
+flip: $(TARGET)-$($PAYLOAD).hex
 	batchisp -hardware usb -device $(MCU) -operation erase f
-	batchisp -hardware usb -device $(MCU) -operation loadbuffer $(TARGET)-$(VERSION).hex program
+	batchisp -hardware usb -device $(MCU) -operation loadbuffer $(TARGET)-$(PAYLOAD).hex program
 	batchisp -hardware usb -device $(MCU) -operation start reset 0
 
-dfu: $(TARGET)-$(VERSION).hex
+dfu: $(TARGET)-$(PAYLOAD).hex
 	dfu-programmer $(MCU) erase
-	dfu-programmer $(MCU) flash --debug 1 $(TARGET)-$(VERSION).hex
+	dfu-programmer $(MCU) flash --debug 1 $(TARGET)-$(PAYLOAD).hex
 	dfu-programmer $(MCU) reset
 
-flip-ee: $(TARGET)-$(VERSION).hex $(TARGET)-$(VERSION).eep
-	$(COPY) $(TARGET)-$(VERSION).eep $(TARGET)-$(VERSION)eep.hex
+flip-ee: $(TARGET)-$(PAYLOAD).hex $(TARGET)-$(PAYLOAD).eep
+	$(COPY) $(TARGET)-$(PAYLOAD).eep $(TARGET)-$(PAYLOAD)eep.hex
 	batchisp -hardware usb -device $(MCU) -operation memory EEPROM erase
-	batchisp -hardware usb -device $(MCU) -operation memory EEPROM loadbuffer $(TARGET)-$(VERSION)eep.hex program
+	batchisp -hardware usb -device $(MCU) -operation memory EEPROM loadbuffer $(TARGET)-$(PAYLOAD)eep.hex program
 	batchisp -hardware usb -device $(MCU) -operation start reset 0
-	$(REMOVE) $(TARGET)-$(VERSION)eep.hex
+	$(REMOVE) $(TARGET)-$(PAYLOAD)eep.hex
 
-dfu-ee: $(TARGET)-$(VERSION).hex $(TARGET)-$(VERSION).eep
-	dfu-programmer $(MCU) flash-eeprom --debug 1 --suppress-bootloader-mem $(TARGET)-$(VERSION).eep
+dfu-ee: $(TARGET)-$(PAYLOAD).hex $(TARGET)-$(PAYLOAD).eep
+	dfu-programmer $(MCU) flash-eeprom --debug 1 --suppress-bootloader-mem $(TARGET)-$(PAYLOAD).eep
 	dfu-programmer $(MCU) reset
 
 
@@ -531,18 +552,18 @@ gdb-config:
 	@echo define reset >> $(GDBINIT_FILE)
 	@echo SIGNAL SIGHUP >> $(GDBINIT_FILE)
 	@echo end >> $(GDBINIT_FILE)
-	@echo file $(TARGET)-$(VERSION).elf >> $(GDBINIT_FILE)
+	@echo file $(TARGET)-$(PAYLOAD).elf >> $(GDBINIT_FILE)
 	@echo target remote $(DEBUG_HOST):$(DEBUG_PORT)  >> $(GDBINIT_FILE)
 ifeq ($(DEBUG_BACKEND),simulavr)
 	@echo load  >> $(GDBINIT_FILE)
 endif
 	@echo break main >> $(GDBINIT_FILE)
 
-debug: gdb-config $(TARGET)-$(VERSION).elf
+debug: gdb-config $(TARGET)-$(PAYLOAD).elf
 ifeq ($(DEBUG_BACKEND), avarice)
 	@echo Starting AVaRICE - Press enter when "waiting to connect" message displays.
 	@$(WINSHELL) /c start avarice --jtag $(JTAG_DEV) --erase --program --file \
-	$(TARGET)-$(VERSION).elf $(DEBUG_HOST):$(DEBUG_PORT)
+	$(TARGET)-$(PAYLOAD).elf $(DEBUG_HOST):$(DEBUG_PORT)
 	@$(WINSHELL) /c pause
 
 else
@@ -563,16 +584,16 @@ COFFCONVERT += --change-section-address .eeprom-0x810000
 
 
 
-coff: $(TARGET)-$(VERSION).elf
+coff: $(TARGET)-$(PAYLOAD).elf
 	@echo
-	@echo $(MSG_COFF) $(TARGET)-$(VERSION).cof
-	$(COFFCONVERT) -O coff-avr $< $(TARGET)-$(VERSION).cof
+	@echo $(MSG_COFF) $(TARGET)-$(PAYLOAD).cof
+	$(COFFCONVERT) -O coff-avr $< $(TARGET)-$(PAYLOAD).cof
 
 
-extcoff: $(TARGET)-$(VERSION).elf
+extcoff: $(TARGET)-$(PAYLOAD).elf
 	@echo
-	@echo $(MSG_EXTENDED_COFF) $(TARGET)-$(VERSION).cof
-	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET)-$(VERSION).cof
+	@echo $(MSG_EXTENDED_COFF) $(TARGET)-$(PAYLOAD).cof
+	$(COFFCONVERT) -O coff-ext-avr $< $(TARGET)-$(PAYLOAD).cof
 
 
 
@@ -603,7 +624,7 @@ extcoff: $(TARGET)-$(VERSION).elf
 
 
 # Create library from object files.
-.SECONDARY : $(TARGET)-$(VERSION).a
+.SECONDARY : $(TARGET)-$(PAYLOAD).a
 .PRECIOUS : $(OBJ)
 %.a: $(OBJ)
 	@echo
@@ -612,7 +633,7 @@ extcoff: $(TARGET)-$(VERSION).elf
 
 
 # Link: create ELF output file from object files.
-.SECONDARY : $(TARGET)-$(VERSION).elf
+.SECONDARY : $(TARGET)-$(PAYLOAD).elf
 .PRECIOUS : $(OBJ)
 %.elf: $(OBJ)
 	@echo
@@ -699,7 +720,7 @@ PL3:
 	$(MAKE) -C PL3
 
 
-ifeq ($(VERSION),PL3)
+ifeq ($(VERSION),4)
 # Explicitly lay out these payload dependencies so that PL3 can be built first
 descriptor.h: PL3
 psgroove.c: descriptor.h

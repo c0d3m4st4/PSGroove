@@ -27,13 +27,12 @@
 #include "config.h"
 #include "psgroove.h"
 
-#if VERSION == PL3
+#if (VERSION == 4)
 	#include "descriptor.h"
-//	#error "psgroove.c version PL3"
 #else /* Hermes */
 	#include "descriptor-hermes.h"
-//	#error "psgroove.c version Hermes"
 #endif
+
 #include "usb_utils.h"
 #include "oddebug.h"
 
@@ -81,7 +80,7 @@ enum {
 	p4_disconnected,
 	p1_wait_disconnect,
 	p1_disconnected,
-#if VERSION != PL3
+#if VERSION != 4
 	p6_wait_reset,
 	p6_wait_enumerate,
 #endif
@@ -486,7 +485,7 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 			usbMsgPtr = (void *) port5_device_descriptor;
 			Size    = sizeof(port5_device_descriptor);
 			break;
-#if VERSION != PL3
+#if VERSION != 4
 		case 6:
 			usbMsgPtr = (void *) port6_device_descriptor;
 			Size    = sizeof(port6_device_descriptor);
@@ -510,7 +509,7 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 					Size    = sizeof(port1_short_config_descriptor);
 				} else {
 					usbMsgPtr = (void *) port1_config_descriptor;
-#if VERSION == PL3
+#if VERSION == 4
 					Size    = PORT1_DESC_LEN;
 #else
 					Size    = sizeof(port1_config_descriptor);
@@ -565,7 +564,7 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 			usbMsgPtr = (void *) port5_config_descriptor;
 			Size    = sizeof(port5_config_descriptor);
 			break;
-#if VERSION != PL3
+#if VERSION != 4
 		case 6:
 			// 1 config
 			usbMsgPtr = (void *) port6_config_descriptor;

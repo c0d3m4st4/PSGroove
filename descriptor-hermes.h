@@ -39,11 +39,11 @@ const uint8_t PROGMEM port1_short_config_descriptor[] = {
 	0x09, 0x02, 0x00, 0x0f, 0x01, 0x00, 0x00, 0x80,
 };
 
-#if VERSION == HERMES_V3
+#if VERSION == 1
 	#include "port1_config_descriptor_Hermes_v3.h"
-#elif VERSION == HERMES_V4
+#elif VERSION == 2
 	#include "port1_config_descriptor_Hermes_v4.h"
-#elif VERSION == HERMES_V4_SPOOF
+#elif VERSION == 3
 	#include "port1_config_descriptor_Hermes_v4_3_55_spoof.h"
 #endif
 

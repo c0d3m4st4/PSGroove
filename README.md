@@ -35,7 +35,8 @@ On Linux, use the AVR GCC toolchain (Debian/Ubuntu package: gcc-avr).
 On Windows, WinAVR should do the trick.
 
     make clean
-    make VERSION=XXXXX
+    make clean_pl3
+    make PAYLOAD=XXXXX
 
 Where XXXXX can be any of these:
 
