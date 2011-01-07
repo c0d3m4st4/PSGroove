@@ -86,6 +86,9 @@ else
 		else
 			ifeq ($(PAYLOAD),PL3)
 				VERSION = 4
+			else
+				PAYLOAD = HERMES_V4_SPOOF
+				VERSION = 3
 			endif
 		endif
 	endif
