@@ -80,7 +80,7 @@ enum {
 	p4_disconnected,
 	p1_wait_disconnect,
 	p1_disconnected,
-#if VERSION != 4
+#if !(VERSION == 4)
 	p6_wait_reset,
 	p6_wait_enumerate,
 #endif
@@ -439,6 +439,7 @@ int main(void)
          state = p1_wait_disconnect;
       }
 
+#if VERSION == 4
       if (state == p1_wait_disconnect && last_port_conn_clear == 1)
       {
          DBGMSG1("Done!");
@@ -446,6 +447,44 @@ int main(void)
          setLed(GREEN);
          usbDeviceDisconnect();
       }
+#else
+	if (state == p1_wait_disconnect && last_port_conn_clear == 1)
+	{
+	        DBGMSG1("Step 20");
+        	setLed(RED);
+		state = p1_disconnected;
+		expire = 20;
+	}
+
+	// connect 6
+	if (state == p1_disconnected && expire == 0)
+	{
+         	DBGMSG1("Step 21");
+	        setLed(NONE);
+		switch_port(0);
+		connect_port(6);
+		state = p6_wait_reset;
+	}
+
+	if (state == p6_wait_reset && last_port_reset_clear == 6)
+	{
+        	DBGMSG1("Step 22");
+	        setLed(RED);
+		switch_port(6);
+		state = p6_wait_enumerate;
+	}
+
+	// done
+	if (state == done)
+	{
+		setLed(GREEN);
+	}
+
+#endif
+
+
+
+
    }
 }
 
@@ -485,7 +524,7 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 			usbMsgPtr = (void *) port5_device_descriptor;
 			Size    = sizeof(port5_device_descriptor);
 			break;
-#if VERSION != 4
+#if !(VERSION == 4)
 		case 6:
 			usbMsgPtr = (void *) port6_device_descriptor;
 			Size    = sizeof(port6_device_descriptor);
@@ -564,7 +603,7 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 			usbMsgPtr = (void *) port5_config_descriptor;
 			Size    = sizeof(port5_config_descriptor);
 			break;
-#if VERSION != 4
+#if !(VERSION == 4)
 		case 6:
 			// 1 config
 			usbMsgPtr = (void *) port6_config_descriptor;
@@ -586,7 +625,15 @@ usbMsgLen_t usbFunctionDescriptor(struct usbRequest *rq)
 usbMsgLen_t usbFunctionSetup(uchar data[8])
 {
    usbRequest_t *rq = (usbRequest_t *) data;
-   
+
+#if !(VERSION == 4)   
+   if (port_cur == 6 && rq->bRequest == 0xAA) {
+	/* holy crap, it worked! */
+	state = done;
+	return 0;
+   }
+#endif
+
    if (port_cur == 5 && rq->bRequest == USBRQ_SET_INTERFACE)
    {
       /* can ignore this */
